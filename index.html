@@ -1,0 +1,161 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport"
+        content="width=device-width,initial-scale=1">
+
+  <title>Lakeview Assembly | Opening Link</title>
+  <meta name="robots" content="noindex,nofollow">
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font: 16px/1.5 system-ui,
+            -apple-system, Segoe UI, sans-serif;
+      background: #f6f8fb;
+      color: #0a3d62;
+      text-align: center;
+    }
+
+    main {
+      padding: 28px;
+      max-width: 420px;
+    }
+
+    .spinner {
+      width: 34px;
+      height: 34px;
+      margin: 22px auto;
+      border: 4px solid #d9e5ee;
+      border-top-color: #ff9800;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    a {
+      display: inline-block;
+      padding: 13px 20px;
+      background: #ff9800;
+      border-radius: 8px;
+      color: white;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h2>Lakeview Assembly</h2>
+
+    <div class="spinner"
+         id="spinner"
+         aria-hidden="true"></div>
+
+    <p id="status">Opening your link...</p>
+
+    <a id="fallback"
+       hidden
+       href="https://ourlakeviewchurch.churchcenter.com">
+       Visit Lakeview Assembly
+    </a>
+  </main>
+
+  <script>
+    'use strict';
+
+    // Existing Google Apps Script deployment URL
+    const TRACKER_URL =
+      'https://script.google.com/macros/s/AKfycbzRmPHiYJ9XvTT8_J7Co7QlFxOoo_LsOc_H3GDUIn2cAuQwqAZ7qYgk1CuTQhUF0Wsi/exec';
+
+    const DEFAULT_URL =
+      'https://ourlakeviewchurch.churchcenter.com';
+
+    // Read NFC tag ID from the URL
+    const tag =
+      new URLSearchParams(location.search)
+        .get('tag') || 'unknown';
+
+    const status =
+      document.getElementById('status');
+
+    const fallback =
+      document.getElementById('fallback');
+
+    const spinner =
+      document.getElementById('spinner');
+
+    let resolved = false;
+
+    function showFallback(message, url) {
+      if (resolved) return;
+
+      status.textContent = message;
+      spinner.hidden = true;
+      fallback.href = url || DEFAULT_URL;
+      fallback.hidden = false;
+    }
+
+    // Receive destination URL from Apps Script
+    window.lakeviewResolve = function(result) {
+
+      if (
+        !result ||
+        typeof result.url !== 'string' ||
+        !/^https?:\/\//i.test(result.url)
+      ) {
+        showFallback(
+          'We could not open this link automatically.'
+        );
+        return;
+      }
+
+      resolved = true;
+
+      // Redirect to the destination
+      window.location.replace(result.url);
+    };
+
+    // Request the current URL from Google Sheets
+    const request =
+      document.createElement('script');
+
+    const query =
+      new URLSearchParams({
+        mode: 'resolve',
+        tag: tag
+      });
+
+    request.src =
+      TRACKER_URL + '?' + query.toString();
+
+    request.onerror = () =>
+      showFallback(
+        'The link service is temporarily unavailable.'
+      );
+
+    document.head.appendChild(request);
+
+    // Display fallback if request takes too long
+    setTimeout(
+      () => showFallback(
+        'This is taking longer than expected.'
+      ),
+      12000
+    );
+  </script>
+</body>
+</html>
